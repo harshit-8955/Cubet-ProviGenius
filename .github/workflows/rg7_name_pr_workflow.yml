@@ -1,0 +1,52 @@
+
+name: rg7_name-terraform workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    
+    paths:
+      - "infrastructure/rg7_name/**"
+      - ".github/workflows/rg7_name_pr_workflow.yml"
+
+env:
+  ARM_CLIENT_ID: ${ secrets.ARM_CLIENT_ID }
+  ARM_TENANT_ID: ${ secrets.ARM_TENANT_ID }
+  ARM_CLIENT_SECRET: ${ secrets.ARM_CLIENT_SECRET }
+  ARM_SUBSCRIPTION_ID: ${ secrets.ARM_SUBSCRIPTION_ID }
+
+jobs:
+  terraform_plan:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ~1.0
+
+      - name: Terraform Init
+        id: init
+        run: |
+          terraform init -upgrade 2>&1 | tee terraform_init_output.txt
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -out plan.out 2>&1 | tee terraform_plan_output.txt
+
+      - name: Upload Terraform Plan Output
+        uses: actions/upload-artifact@v2
+        with:
+          name: terraform-plan-output
+          path: terraform_plan_output.txt
